@@ -14,22 +14,15 @@ export async function POST(request: Request) {
     const results = [];
     
     for (const program of programs) {
-      // Create a temporary file for the code
       const fileExtension = getFileExtension(program.environment);
       const fileName = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}${fileExtension}`;
       const filePath = join(process.cwd(), 'temp', fileName);
 
-      // Ensure temp directory exists
       await execAsync('mkdir -p temp');
-
-      // Write code to file
       await writeFile(filePath, program.code);
 
       try {
-        // Execute the code based on environment
         const { stdout, stderr } = await execAsync(getExecutionCommand(program.environment, filePath));
-        
-        // Check completion condition if specified
         const isCompleted = await checkCompletionCondition(program.completionCondition, stdout, stderr);
 
         results.push({
@@ -41,7 +34,6 @@ export async function POST(request: Request) {
           completed: isCompleted
         });
 
-        // Clean up temp file
         await execAsync(`rm ${filePath}`);
       } catch (execError: any) {
         results.push({
@@ -53,6 +45,7 @@ export async function POST(request: Request) {
           completed: false
         });
       }
+      console.log('Result:', results);
     }
 
     return NextResponse.json({ results });
@@ -101,7 +94,6 @@ async function checkCompletionCondition(
 ): Promise<boolean> {
   if (!condition) return true;
   
-  // Handle different types of completion conditions
   if (condition.startsWith('exit:')) {
     return stderr === '';
   }
